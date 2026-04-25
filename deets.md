@@ -459,14 +459,14 @@ The hackathon emphasizes **"Agentic Systems"** - TARA delivers this through:
 │  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐  │ │
 │  │  │  QUERY     │  │  DENSE     │  │  SPARSE    │  │  GRAPH     │  │  SEMANTIC  │  │ │
 │  │  │  PROCESSOR │→ │  RETRIEVER │→ │  RETRIEVER │→ │  RETRIEVER │→ │  CACHE     │  │ │
-│  │  │            │  │  (BGE-M3)  │  │  (BM25)    │  │  (Neo4j)   │  │  (Redis)   │  │ │
+│  │  │            │  │  (bge-small-en-v1.5)  │  │  (BM25)    │  │             │  │  (SQLite)   │  │ │
 │  │  └────────────┘  └────────────┘  └────────────┘  └────────────┘  └────────────┘  │ │
 │  │                                          │                                         │ │
 │  │                                          ▼                                         │ │
 │  │  ┌─────────────────────────────────────────────────────────────────────────────┐  │ │
 │  │  │                         FUSION & RE-RANKING                                 │  │ │
 │  │  │  • Reciprocal Rank Fusion (RRF)                                             │  │ │
-│  │  │  • Cross-Encoder Re-ranking (BGE-reranker-v2)                               │  │ │
+│  │  │  • Cross-Encoder Re-ranking (ms-marco-MiniLM)                               │  │ │
 │  │  │  • Diversity Sampling                                                       │  │ │
 │  │  │  • Parent Document Expansion                                                │  │ │
 │  │  └─────────────────────────────────────────────────────────────────────────────┘  │ │
@@ -479,8 +479,8 @@ The hackathon emphasizes **"Agentic Systems"** - TARA delivers this through:
 │  │  ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────────────┐  │ │
 │  │  │  CONTEXT BUILDER   │  │  LLM GENERATION    │  │  POST-PROCESSING           │  │ │
 │  │  │                    │  │                    │  │                            │  │ │
-│  │  │  • Context window  │  │  • Llama-3.1-70B   │  │  • Citation extraction     │  │ │
-│  │  │    optimization    │  │  • GPT-4o (backup) │  │  • Confidence scoring      │  │ │
+│  │  │  • Context window  │  │  • Llama-3.2-3B-Instruct (4-bit GGUF)   │  │  • Citation extraction     │  │ │
+│  │  │    optimization    │  │  • Phi-3.5-mini (alt) │  │  • Confidence scoring      │  │ │
 │  │  │  • Relevance       │  │  • Chain-of-thought│  │  • Hallucination check     │  │ │
 │  │  │    filtering       │  │  • Domain prompts  │  │  • Format standardization  │  │ │
 │  │  └────────────────────┘  └────────────────────┘  └────────────────────────────┘  │ │
@@ -629,24 +629,24 @@ The core of TARA - finding the right information quickly and comprehensively.
 │              │                           │                           │                 │
 │              ▼                           ▼                           ▼                 │
 │  ┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐          │
-│  │   DENSE RETRIEVAL   │   │  SPARSE RETRIEVAL   │   │   GRAPH RETRIEVAL   │          │
+│  │   DENSE RETRIEVAL   │   │  SPARSE RETRIEVAL   │   │                     │          │
 │  │                     │   │                     │   │                     │          │
-│  │   Model: BGE-M3     │   │   Algorithm: BM25   │   │   Database: Neo4j   │          │
-│  │   Dim: 1024         │   │   Tokenizer: Custom │   │                     │          │
+│  │   Model: bge-small-en-v1.5     │   │   BM25 (Qdrant)     │   │                       │          │
+│  │   Dim: 384          │   │   Tokenizer: Custom │   │                     │          │
 │  │   Index: HNSW       │   │   Analyzer: Telecom │   │   Query:            │          │
-│  │                     │   │                     │   │   MATCH (c:Cell     │          │
-│  │   Semantic          │   │   Exact keyword     │   │   {id:"12345"})     │          │
-│  │   similarity        │   │   matching          │   │   -[:HAS_KPI]->     │          │
-│  │                     │   │                     │   │   (k:KPI)           │          │
-│  │   Good for:         │   │   Good for:         │   │   -[:DOCUMENTED_IN] │          │
-│  │   • Paraphrased     │   │   • Spec numbers    │   │   ->(d:Document)    │          │
+│  │                     │   │                     │   │   Sparse retrieval  │          │
+│  │   Semantic          │   │   Exact keyword     │   │   via Qdrant native │          │
+│  │   similarity        │   │   matching          │   │   BM25 index        │          │
+│  │                     │   │                     │   │                     │          │
+│  │   Good for:         │   │   Good for:         │   │                     │          │
+│  │   • Paraphrased     │   │   • Spec numbers    │   │                     │          │
 │  │     queries         │   │   • Exact terms     │   │                     │          │
-│  │   • Conceptual      │   │   • Cell IDs        │   │   Good for:         │          │
-│  │     similarity      │   │   • KPI names       │   │   • Relationships   │          │
-│  │                     │   │                     │   │   • Entity context  │          │
+│  │   • Conceptual      │   │   • Cell IDs        │   │                     │          │
+│  │     similarity      │   │   • KPI names       │   │                     │          │
+│  │                     │   │                     │   │                     │          │
 │  └──────────┬──────────┘   └──────────┬──────────┘   └──────────┬──────────┘          │
 │             │                         │                         │                      │
-│             │ Top-50                  │ Top-50                  │ Top-20               │
+│             │ Top-50                  │ Top-50                  │                     │
 │             │                         │                         │                      │
 │             └─────────────────────────┼─────────────────────────┘                      │
 │                                       │                                                 │
@@ -659,15 +659,15 @@ The core of TARA - finding the right information quickly and comprehensively.
 │  │                                                                                 │   │
 │  │  Example:                                                                      │   │
 │  │  ┌───────────────────────────────────────────────────────────────────────┐     │   │
-│  │  │  Document A:  Dense rank=3, Sparse rank=1, Graph rank=5               │     │   │
-│  │  │  RRF_A = 1/(60+3) + 1/(60+1) + 1/(60+5) = 0.0159 + 0.0164 + 0.0154   │     │   │
-│  │  │        = 0.0477                                                       │     │   │
+│  │  │  Document A:  Dense rank=3, Sparse rank=1                              │     │   │
+│  │  │  RRF_A = 1/(60+3) + 1/(60+1) = 0.0159 + 0.0164                        │     │   │
+│  │  │        = 0.0323                                                       │     │   │
 │  │  │                                                                       │     │   │
-│  │  │  Document B:  Dense rank=1, Sparse rank=10, Graph rank=null           │     │   │
-│  │  │  RRF_B = 1/(60+1) + 1/(60+10) + 0 = 0.0164 + 0.0143 + 0              │     │   │
+│  │  │  Document B:  Dense rank=1, Sparse rank=10                             │     │   │
+│  │  │  RRF_B = 1/(60+1) + 1/(60+10) = 0.0164 + 0.0143                       │     │   │
 │  │  │        = 0.0307                                                       │     │   │
 │  │  │                                                                       │     │   │
-│  │  │  Document A wins (higher RRF score - appears in all retrievers)       │     │   │
+│  │  │  Document A wins (higher RRF score — appears in both retrievers)       │     │   │
 │  │  └───────────────────────────────────────────────────────────────────────┘     │   │
 │  │                                                                                 │   │
 │  │  Output: Top-50 documents ranked by RRF score                                  │   │
@@ -677,7 +677,7 @@ The core of TARA - finding the right information quickly and comprehensively.
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
 │  │                      CROSS-ENCODER RE-RANKING                                   │   │
 │  │                                                                                 │   │
-│  │  Model: BGE-reranker-v2-m3 (or BAAI/bge-reranker-large)                        │   │
+│  │  Model: ms-marco-MiniLM-L-6-v2 (cross-encoder, ~80MB)                                │   │
 │  │                                                                                 │   │
 │  │  Process:                                                                      │   │
 │  │  ┌───────────────────────────────────────────────────────────────────────┐     │   │
@@ -981,7 +981,7 @@ Critical for achieving 90% faithfulness target.
 │    ▼                                                                                    │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
 │  │ 5. GENERATION                                                                   │   │
-│  │    • LLM: Llama-3.1-70B-Instruct                                                │   │
+│  │    • LLM: Llama-3.2-3B-Instruct (4-bit GGUF)                                                │   │
 │  │    • Prompt: Domain-specific with citation requirements                         │   │
 │  │    • Output: Structured answer with inline citations                            │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
@@ -1131,10 +1131,10 @@ Critical for achieving 90% faithfulness target.
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │  MODEL                    │  ACCURACY  │  NOTES                                  │  │
 │  │  ────────────────────────────────────────────────────────────────────────────────│  │
-│  │  GPT-4 (zero-shot)        │  ~65%      │  Without retrieval                      │  │
-│  │  GPT-4 (with retrieval)   │  ~75%      │  Basic RAG                              │  │
+│  │  Llama-3B (zero-shot)         │  ~65%      │  Without retrieval                      │  │
+│  │  Llama-3B (with retrieval)   │  ~75%      │  Basic RAG                              │  │
 │  │  Claude-2                 │  ~60%      │  Without retrieval                      │  │
-│  │  Llama-2-70B              │  ~50%      │  Without retrieval                      │  │
+│  │  Llama-2-7B              │  ~50%      │  Without retrieval                      │  │
 │  │  Domain fine-tuned        │  ~70%      │  Without retrieval                      │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
@@ -1351,14 +1351,14 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │                                                                                 │   │
 │  │  → Improves both dense and sparse retrieval                                    │   │
 │  │                                                                                 │   │
-│  │  COMPONENT 3: GRAPH RETRIEVAL FOR RELATIONSHIPS                                │   │
-│  │  ─────────────────────────────────────────────                                 │   │
-│  │  Knowledge Graph captures:                                                     │   │
-│  │  • Spec → Section → Subsection hierarchy                                       │   │
-│  │  • Protocol → Layer → Procedure relationships                                  │   │
-│  │  • Parameter → Spec → Band mappings                                            │   │
+│  │  COMPONENT 3: STRICT PYTHON BACKEND VERIFICATION                               │   │
+│  │  ──────────────────────────────────────────────                                │   │
+│  │  Python backend validates all LLM outputs:                                     │   │
+│  │  • Citation verification: each claim checked against Qdrant context            │   │
+│  │  • Structured JSON output: LLM forced to produce parseable format              │   │
+│  │  • Hallucination rejection: answers with unverified claims are retried         │   │
 │  │                                                                                 │   │
-│  │  → Enables relationship-aware retrieval                                        │   │
+│  │  → Compensates for smaller model's tendency to hallucinate                     │   │
 │  │                                                                                 │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
@@ -1769,27 +1769,27 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  PRIMARY GENERATION MODEL                                                               │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                                  │  │
-│  │  MODEL: Llama-3.1-70B-Instruct                                                   │  │
+│  │  MODEL: Llama-3.2-3B-Instruct (4-bit GGUF)                                                   │  │
 │  │  ──────────────────────────────                                                  │  │
-│  │  Source: https://huggingface.co/meta-llama/Meta-Llama-3.1-70B-Instruct          │  │
-│  │  License: Llama 3.1 Community License                                            │  │
-│  │  Parameters: 70B                                                                 │  │
+│  │  Source: https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct          │  │
+│  │  License: Llama 3.2 Community License                                            │  │
+│  │  Parameters: 3B (4-bit quantized GGUF, ~2GB VRAM)                                                                 │  │
 │  │                                                                                  │  │
 │  │  WHY THIS MODEL:                                                                 │  │
-│  │  ✓ Best open-source performance on technical tasks                               │  │
-│  │  ✓ 128K context window (fits large contexts)                                     │  │
+│  │  ✓ Great quality-to-size ratio for technical tasks                                   │  │
+│  │  ✓ 8K context window (sufficient for RAG chunks)                                          │  │
 │  │  ✓ Strong instruction following                                                  │  │
 │  │  ✓ Good at citations and structured output                                       │  │
 │  │  ✓ Can be quantized for efficiency                                               │  │
 │  │                                                                                  │  │
 │  │  DEPLOYMENT OPTIONS:                                                             │  │
-│  │  • vLLM (recommended): High throughput inference                                 │  │
-│  │  • TensorRT-LLM: NVIDIA optimized                                                │  │
-│  │  • Ollama: Easy local deployment                                                 │  │
+│  │  • Ollama (recommended): Efficient CPU/GPU hybrid inference                                 │  │
+│  │  • (TensorRT not needed — Ollama handles optimization)                                                │  │
+│  │  • Ollama (primary): CPU/GPU hybrid, automatic offload                                                 │  │
 │  │                                                                                  │  │
 │  │  QUANTIZATION:                                                                   │  │
-│  │  • AWQ 4-bit: ~35GB VRAM, minimal quality loss                                   │  │
-│  │  • GPTQ 4-bit: Alternative quantization                                          │  │
+│  │  • GGUF 4-bit via Ollama: ~2GB VRAM, good quality                                       │  │
+│  │  • CPU offload: Ollama automatically spills to RAM                                              │  │
 │  │                                                                                  │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
@@ -1798,11 +1798,11 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │                                                                                  │  │
 │  │  MODEL                    │ SIZE  │ USE CASE               │ NOTES              │  │
 │  │  ─────────────────────────┼───────┼────────────────────────┼────────────────────│  │
-│  │  Llama-3.1-8B-Instruct    │ 8B    │ Development/testing    │ Faster iteration   │  │
-│  │  Mistral-7B-Instruct      │ 7B    │ Lightweight option     │ Good quality/size  │  │
-│  │  Mixtral-8x7B             │ 47B   │ MoE alternative        │ Efficient compute  │  │
-│  │  GPT-4o (API)             │ -     │ Comparison baseline    │ Best quality ref   │  │
-│  │  Claude-3.5-Sonnet (API)  │ -     │ Comparison baseline    │ Alternative ref    │  │
+│  │  Phi-3.5-mini-instruct    │ 3.8B  │ Alternative primary    │ Strong reasoning     │  │
+│  │  Qwen2.5-3B-Instruct      │ 3B    │ Alternative option     │ Good multilingual  │  │
+│  │  Gemma-2-2B-it            │ 2B    │ Ultra-lightweight      │ Google, fast        │  │
+│  │  Phi-3.5-mini-instruct             │ -     │ Lightweight alternative │ Lightweight alt      │  │
+│  │  Claude-3.5-Sonnet (API)  │ -     │ Lightweight alternative │ Alternative ref    │  │
 │  │                                                                                  │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
@@ -1832,24 +1832,24 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  PRIMARY EMBEDDING MODEL                                                                │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                                  │  │
-│  │  MODEL: BGE-M3 (BAAI/bge-m3)                                                     │  │
+│  │  MODEL: bge-small-en-v1.5 (BAAI/bge-small-en-v1.5)                                                     │  │
 │  │  ─────────────────────────────                                                   │  │
-│  │  Source: https://huggingface.co/BAAI/bge-m3                                      │  │
+│  │  Source: https://huggingface.co/cross-encoder/bge-small-en-v1.5                                      │  │
 │  │  License: MIT                                                                    │  │
-│  │  Dimensions: 1024                                                                │  │
-│  │  Max Tokens: 8192                                                                │  │
+│  │  Dimensions: 384                                                                │  │
+│  │  Max Tokens: 512                                                                 │  │
 │  │                                                                                  │  │
-│  │  WHY BGE-M3:                                                                     │  │
-│  │  ✓ State-of-the-art on MTEB benchmark                                            │  │
-│  │  ✓ Multi-functionality (dense, sparse, multi-vector)                             │  │
-│  │  ✓ Long context support (8K tokens)                                              │  │
-│  │  ✓ Multilingual (handles technical English well)                                 │  │
+│  │  WHY bge-small-en-v1.5:                                                                     │  │
+│  │  ✓ Excellent MTEB performance for its size (~130MB)                                            │  │
+│  │  ✓ Fast inference, fits easily in 6GB VRAM alongside LLM                             │  │
+│  │  ✓ English-optimized for telecom docs                                                               │  │
+│  │  ✓ Open source, MIT license, widely supported                                          │  │
 │  │  ✓ Open source and free                                                          │  │
 │  │                                                                                  │  │
 │  │  BENCHMARK PERFORMANCE:                                                          │  │
-│  │  • Retrieval (BEIR avg): 59.7                                                    │  │
-│  │  • Classification: 86.3                                                          │  │
-│  │  • Clustering: 46.5                                                              │  │
+│  │  • Retrieval (BEIR avg): 51.7                                                    │  │
+│  │  • Classification: 75.0                                                           │  │
+│  │  • Clustering: 42.0                                                               │  │
 │  │                                                                                  │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
@@ -1869,8 +1869,8 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  RE-RANKING MODEL                                                                       │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                                  │  │
-│  │  MODEL: BGE-reranker-v2-m3                                                       │  │
-│  │  Source: https://huggingface.co/BAAI/bge-reranker-v2-m3                          │  │
+│  │  MODEL: ms-marco-MiniLM-L-6-v2                                                       │  │
+│  │  Source: https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2                          │  │
 │  │  Type: Cross-encoder                                                             │  │
 │  │                                                                                  │  │
 │  │  WHY CROSS-ENCODER RE-RANKING:                                                   │  │
@@ -1985,15 +1985,15 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │  Pinecone      │ Managed, fast               │ Paid, vendor lock   │ Optional   │  │
 │  │  FAISS         │ Fast, proven                │ No metadata filter  │ Baseline   │  │
 │  │                                                                                  │  │
-│  │  RECOMMENDATION: Start with Qdrant (dev), migrate to Milvus (production)        │  │
+│  │  RECOMMENDATION: Use Qdrant in local/file mode (no Docker needed)               │  │
 │  │                                                                                  │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
 │  SEARCH ENGINES (Sparse Retrieval)                                                      │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                                  │  │
-│  │  Elasticsearch                                                                   │  │
-│  │  URL: https://github.com/elastic/elasticsearch                                   │  │
+│  │  Qdrant Native Sparse Vectors                                                    │  │
+│  │  URL: # REMOVED — using Qdrant native sparse vectors                                   │  │
 │  │                                                                                  │  │
 │  │  USE IN TARA:                                                                    │  │
 │  │  • BM25 sparse retrieval                                                         │  │
@@ -2005,8 +2005,8 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  GRAPH DATABASE                                                                         │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                                  │  │
-│  │  Neo4j                                                                           │  │
-│  │  URL: https://neo4j.com/                                                         │  │
+│  │  Neo4j has been removed from the architecture.                                   │  │
+│  │  URL: # REMOVED                                                         │  │
 │  │                                                                                  │  │
 │  │  USE IN TARA:                                                                    │  │
 │  │  • Entity relationship graph                                                     │  │
@@ -2076,7 +2076,7 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │                                                                                  │  │
 │  │  ENGINE          │ DESCRIPTION                 │ URL                             │  │
 │  │  ────────────────┼─────────────────────────────┼─────────────────────────────────│  │
-│  │  vLLM            │ High-throughput inference   │ github.com/vllm-project/vllm    │  │
+│  │  Ollama          │ Local inference engine      │ github.com/ollama/ollama          │  │
 │  │                  │ PagedAttention, continuous  │                                 │  │
 │  │                  │ batching. RECOMMENDED       │                                 │  │
 │  │  ────────────────┼─────────────────────────────┼─────────────────────────────────│  │
@@ -2094,7 +2094,7 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  QUANTIZATION                                                                           │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                                                                                  │  │
-│  │  METHOD    │ BITS │ QUALITY LOSS │ VRAM (70B) │ SPEED    │ RECOMMENDED          │  │
+│  │  METHOD    │ BITS │ QUALITY LOSS │ VRAM (3B)  │ SPEED    │ RECOMMENDED          │  │
 │  │  ──────────┼──────┼──────────────┼────────────┼──────────┼──────────────────────│  │
 │  │  FP16      │ 16   │ None         │ ~140GB     │ Baseline │ If resources allow   │  │
 │  │  AWQ       │ 4    │ Minimal      │ ~35GB      │ Fast     │ RECOMMENDED          │  │
@@ -2251,24 +2251,24 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │                     │                         │            │                    │   │
 │  │  LANGUAGE           │ Python                  │ 3.11+      │ PSF                │   │
 │  │                     │                         │            │                    │   │
-│  │  LLM                │ Llama-3.1-70B-Instruct  │ Latest     │ Llama 3.1          │   │
-│  │                     │ (+ GPT-4o for compare)  │            │                    │   │
+│  │  LLM                │ Llama-3.2-3B-Instruct (4-bit GGUF)  │ Latest     │ Llama 3.2          │   │
+│  │                     │ (local-only, no API)  │            │                    │   │
 │  │                     │                         │            │                    │   │
-│  │  EMBEDDINGS         │ BGE-M3                  │ Latest     │ MIT                │   │
+│  │  EMBEDDINGS         │ bge-small-en-v1.5       │ Latest     │ MIT                               │   │
 │  │                     │                         │            │                    │   │
-│  │  RE-RANKER          │ BGE-reranker-v2-m3      │ Latest     │ MIT                │   │
+│  │  RE-RANKER          │ ms-marco-MiniLM-L-6-v2│ Latest     │ Apache 2.0                         │   │
 │  │                     │                         │            │                    │   │
-│  │  VECTOR DB          │ Qdrant / Milvus         │ Latest     │ Apache 2.0         │   │
+│  │  VECTOR DB          │ Qdrant (local mode)     │ Latest     │ Apache 2.0         │   │
 │  │                     │                         │            │                    │   │
-│  │  SPARSE SEARCH      │ Elasticsearch           │ 8.x        │ SSPL/Elastic       │   │
+│  │  SPARSE SEARCH      │ Qdrant (native BM25)    │ Latest     │ Apache 2.0         │   │
 │  │                     │                         │            │                    │   │
-│  │  GRAPH DB           │ Neo4j                   │ 5.x        │ GPL / Commercial   │   │
+│  │  GRAPH DB           │ REMOVED                 │ -          │ -                   │   │
 │  │                     │                         │            │                    │   │
-│  │  CACHE              │ Redis                   │ 7.x        │ BSD                │   │
+│  │  CACHE              │ lru_cache + SQLite      │ Built-in   │ PSF / Public Domain                │   │
 │  │                     │                         │            │                    │   │
 │  │  ORCHESTRATION      │ LangChain + LangGraph   │ 0.2.x      │ MIT                │   │
 │  │                     │                         │            │                    │   │
-│  │  INFERENCE          │ vLLM                    │ Latest     │ Apache 2.0         │   │
+│  │  INFERENCE          │ Ollama                  │ Latest     │ MIT                        │   │
 │  │                     │                         │            │                    │   │
 │  │  PDF PROCESSING     │ PyMuPDF + pdfplumber    │ Latest     │ AGPL / MIT         │   │
 │  │                     │                         │            │                    │   │
@@ -2289,16 +2289,16 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │                                                                                 │   │
 │  │  COMPONENT        │ MINIMUM                   │ RECOMMENDED                     │   │
 │  │  ─────────────────┼───────────────────────────┼─────────────────────────────────│   │
-│  │  GPU              │ RTX 3090 (24GB)           │ RTX 4090 (24GB) or A100 (40GB)  │   │
-│  │  RAM              │ 32GB                      │ 64GB                            │   │
-│  │  Storage          │ 100GB SSD                 │ 500GB NVMe SSD                  │   │
-│  │  CPU              │ 8 cores                   │ 16+ cores                       │   │
+│  │  GPU              │ RTX 4050 (6GB VRAM)       │ Any GPU with 6GB+ VRAM          │   │
+│  │  RAM              │ 16GB                      │ 32GB                            │   │
+│  │  Storage          │ 50GB SSD                  │ 100GB NVMe SSD                  │   │
+│  │  CPU              │ 4 cores                   │ 8+ cores                         │   │
 │  │                                                                                 │   │
-│  │  CLOUD ALTERNATIVES:                                                            │   │
-│  │  • AWS: g5.4xlarge (A10G) or p4d.24xlarge (A100)                                │   │
-│  │  • GCP: a2-highgpu-1g (A100)                                                    │   │
-│  │  • Azure: NC24ads_A100_v4                                                       │   │
-│  │  • RunPod/Vast.ai: Cost-effective GPU rental                                    │   │
+│  │  NOTE: Designed to run fully locally on laptop hardware.                                                            │   │
+│  │  • Ollama handles CPU/GPU hybrid offloading automatically.                                │   │
+│  │  • No cloud GPU needed for this architecture.                                                                 │   │
+│  │  • Total VRAM footprint: ~3-4GB (LLM + embeddings)                                                              │   │
+│  │  • Remaining VRAM available for inference KV cache                                             │   │
 │  │                                                                                 │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                         │
@@ -2337,7 +2337,7 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │   ├── processed/                    # Processed chunks                               │
 │  │   │   ├── chunks/                   # Text chunks with metadata                      │
 │  │   │   ├── embeddings/               # Pre-computed embeddings                        │
-│  │   │   └── graphs/                   # Knowledge graph data                           │
+│  │   │   └──                           # (graph data removed)                             │
 │  │   └── evaluation/                   # Evaluation datasets                            │
 │  │                                                                                      │
 │  ├── 📁 src/                           # Source code                                    │
@@ -2354,7 +2354,7 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  │   │   ├── __init__.py                                                               │
 │  │   │   ├── dense_retriever.py        # Dense vector retrieval                         │
 │  │   │   ├── sparse_retriever.py       # BM25 sparse retrieval                          │
-│  │   │   ├── graph_retriever.py        # Graph-based retrieval                          │
+│  │   │   ├── # graph_retriever.py      # REMOVED (no graph DB)                           │
 │  │   │   ├── hybrid_fusion.py          # RRF fusion                                     │
 │  │   │   ├── reranker.py               # Cross-encoder re-ranking                       │
 │  │   │   └── retrieval_pipeline.py     # Combined retrieval pipeline                    │
@@ -2592,7 +2592,7 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │  □ Set up project structure                                                      │  │
 │  │  □ Configure development environment                                             │  │
-│  │  □ Set up Docker containers (Qdrant, Elasticsearch, Neo4j)                       │  │
+│  │  □ Set up Qdrant (local/file mode, no Docker needed)                             │  │
 │  │  □ Configure GPU environment for LLM                                             │  │
 │  │  □ Set up version control and CI/CD                                              │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
@@ -2610,10 +2610,10 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │  □ Implement 3GPP-aware chunking                                                 │  │
 │  │  □ Add metadata extraction                                                       │  │
-│  │  □ Generate embeddings (BGE-M3)                                                  │  │
+│  │  □ Generate embeddings (bge-small-en-v1.5)                                                            │  │
 │  │  □ Index in Qdrant (dense)                                                       │  │
-│  │  □ Index in Elasticsearch (sparse)                                               │  │
-│  │  □ Build knowledge graph (Neo4j)                                                 │  │
+│  │  □ Index sparse vectors in Qdrant                                                 │  │
+│  │  □ Verify Qdrant sparse indexing                                                   │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
 │  Day 7: Baseline Evaluation                                                             │
@@ -2643,14 +2643,14 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │  □ Implement dense retriever                                                     │  │
 │  │  □ Implement sparse retriever (BM25)                                             │  │
-│  │  □ Implement graph retriever                                                     │  │
+│  │  □ Verify sparse retriever                                                         │  │
 │  │  □ Build RRF fusion layer                                                        │  │
 │  │  □ Integrate cross-encoder re-ranker                                             │  │
 │  └──────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                         │
 │  Day 12-13: Generation Pipeline                                                         │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
-│  │  □ Set up LLM inference (vLLM)                                                   │  │
+│  │  □ Set up LLM inference (Ollama)                                                   │  │
 │  │  □ Implement context builder                                                     │  │
 │  │  □ Create domain-specific prompts                                                │  │
 │  │  □ Build response generator                                                      │  │
@@ -2691,7 +2691,7 @@ Legend: ✓ = Full support  ~ = Partial support  ✗ = Not supported
 │                                                                                         │
 │  Day 19-20: Caching & Optimization                                                      │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
-│  │  □ Implement semantic cache (Redis)                                              │  │
+│  │  □ Implement semantic cache (SQLite)                                              │  │
 │  │  □ Optimize LLM inference                                                        │  │
 │  │  □ Add request batching                                                          │  │
 │  │  □ Profile and optimize bottlenecks                                              │  │
@@ -2828,23 +2828,23 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # LLM Configuration
-    llm_model: str = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+    llm_model: str = "meta-llama/Llama-3.2-3B-Instruct"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 2048
-    llm_base_url: Optional[str] = "http://localhost:8000/v1"  # vLLM endpoint
+    llm_base_url: Optional[str] = "http://localhost:11434"  # Ollama endpoint
     
     # Embedding Configuration
-    embedding_model: str = "BAAI/bge-m3"
-    embedding_dimension: int = 1024
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_dimension: int = 384
     
     # Reranker Configuration
-    reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     rerank_top_k: int = 10
     
     # Retrieval Configuration
     dense_top_k: int = 50
     sparse_top_k: int = 50
-    graph_top_k: int = 20
+    # graph_top_k: REMOVED — no graph retrieval
     final_top_k: int = 10
     
     # Vector DB
@@ -2852,19 +2852,19 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     qdrant_collection: str = "telecom_docs"
     
-    # Elasticsearch
-    elasticsearch_host: str = "localhost"
-    elasticsearch_port: int = 9200
-    elasticsearch_index: str = "telecom_docs"
+    # Sparse Retrieval (Qdrant native BM25)
+    # elasticsearch REMOVED — using Qdrant native sparse vectors
+    # (BM25 sparse retrieval is handled by Qdrant)
+    # No separate sparse index needed
     
-    # Neo4j
-    neo4j_uri: str = "bolt://localhost:7687"
-    neo4j_user: str = "neo4j"
-    neo4j_password: str = "password"
+    # Graph DB: REMOVED (Neo4j dropped for lean architecture)
+    # neo4j_uri REMOVED — no graph database
+    # neo4j_user REMOVED
+    # neo4j_password REMOVED
     
-    # Redis Cache
-    redis_host: str = "localhost"
-    redis_port: int = 6379
+    # Cache: lru_cache + SQLite (Redis removed)
+    # redis_host REMOVED — using lru_cache + SQLite
+    # redis_port REMOVED
     cache_ttl: int = 3600
     
     # Chunking
@@ -2997,7 +2997,7 @@ class RetrievalPipeline:
         
         Args:
             query: User query (enriched)
-            entities: Extracted entities for graph retrieval
+            entities: Extracted entities for metadata filtering
             top_k: Number of final results
             
         Returns:
@@ -3447,8 +3447,8 @@ class QueryRouter:
 │                                                                                         │
 │  TECHNOLOGY STACK                                                                       │
 │  ────────────────                                                                       │
-│  LLM: Llama-3.1-70B | Embeddings: BGE-M3 | Vector DB: Qdrant                           │
-│  Search: Elasticsearch | Graph: Neo4j | Framework: LangChain/LangGraph                 │
+│  LLM: Llama-3.2-3B-Instruct (4-bit GGUF) | Embeddings: bge-small-en-v1.5 | Vector DB: Qdrant                           │
+│  Sparse: Qdrant BM25   | Graph: REMOVED | Framework: LangChain/LangGraph                 │
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -3470,9 +3470,9 @@ class QueryRouter:
 
 | Component | Model | Source |
 |-----------|-------|--------|
-| LLM | Llama-3.1-70B-Instruct | huggingface.co/meta-llama |
-| Embeddings | BGE-M3 | huggingface.co/BAAI/bge-m3 |
-| Re-ranker | BGE-reranker-v2-m3 | huggingface.co/BAAI |
+| LLM | Llama-3.2-3B-Instruct (4-bit GGUF) | huggingface.co/meta-llama |
+| Embeddings | bge-small-en-v1.5 | huggingface.co/cross-encoder/bge-small-en-v1.5 |
+| Re-ranker | ms-marco-MiniLM-L-6-v2 | huggingface.co/cross-encoder |
 | NER | spaCy + Custom | spacy.io |
 
 ### Tools Quick Reference
@@ -3482,9 +3482,9 @@ class QueryRouter:
 | Orchestration | LangChain | langchain.com |
 | Agentic | LangGraph | github.com/langchain-ai/langgraph |
 | Vector DB | Qdrant | qdrant.tech |
-| Sparse Search | Elasticsearch | elastic.co |
-| Graph DB | Neo4j | neo4j.com |
-| Inference | vLLM | github.com/vllm-project/vllm |
+| Sparse Search | Qdrant BM25   | qdrant.tech |
+| Graph DB | REMOVED | - |
+| Inference | Ollama | github.com/ollama/ollama |
 | Evaluation | RAGAS | github.com/explodinggradients/ragas |
 | UI | Streamlit | streamlit.io |
 | API | FastAPI | fastapi.tiangolo.com |
@@ -3546,7 +3546,7 @@ class QueryRouter:
   □ TeleQnA integrated
   □ Vector index built
   □ Sparse index built
-  □ Knowledge graph built
+  □ Qdrant sparse index ready
 
 □ Core RAG
   □ Query understanding working
@@ -3629,7 +3629,7 @@ class QueryRouter:
 │                                                                                         │
 │  8. PREPARE FOR Q&A                                                                     │
 │     Judges will ask tough questions. Know your architecture deeply.                    │
-│     Prepare answers for: "Why not just use GPT-4?", "How does it scale?",              │
+│     Prepare answers for: "Why a 3B model instead of a larger one?", "How does it scale?",              │
 │     "What about data privacy?"                                                          │
 │                                                                                         │
 │                                                                                         │
@@ -3649,9 +3649,9 @@ class QueryRouter:
 - **O-RAN Alliance**: https://www.o-ran.org/specifications
 
 ### Models
-- **Llama 3.1**: https://huggingface.co/meta-llama/Meta-Llama-3.1-70B-Instruct
-- **BGE-M3**: https://huggingface.co/BAAI/bge-m3
-- **BGE Reranker**: https://huggingface.co/BAAI/bge-reranker-v2-m3
+- **Llama 3.2**: https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct
+- **bge-small-en-v1.5**: https://huggingface.co/cross-encoder/bge-small-en-v1.5
+- **MiniLM Reranker**: https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2
 
 ### Frameworks
 - **LangChain**: https://python.langchain.com/
@@ -3660,9 +3660,9 @@ class QueryRouter:
 
 ### Infrastructure
 - **Qdrant**: https://qdrant.tech/documentation/
-- **Elasticsearch**: https://www.elastic.co/guide/
-- **Neo4j**: https://neo4j.com/docs/
-- **vLLM**: https://docs.vllm.ai/
+- # Elasticsearch removed — Qdrant handles sparse retrieval
+- # Neo4j removed from architecture
+- **Ollama**: https://ollama.com/
 
 ### Learning Resources
 - **RAG Best Practices**: https://www.pinecone.io/learn/rag/

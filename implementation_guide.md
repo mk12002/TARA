@@ -22,8 +22,8 @@
 ## PART 3: INDEXING & RETRIEVAL SYSTEM
 - [3.1 Embedding Generation](#31-embedding-generation)
 - [3.2 Vector Database Setup (Qdrant)](#32-vector-database-setup-qdrant)
-- [3.3 Sparse Index Setup (Elasticsearch)](#33-sparse-index-setup-elasticsearch)
-- [3.4 Knowledge Graph (Neo4j)](#34-knowledge-graph-neo4j)
+- [3.3 Sparse Index Setup (Qdrant BM25)](#33-sparse-index-setup-qdrant-bm25)
+- [3.4 Knowledge Graph (REMOVED)](#34-knowledge-graph-removed)
 - [3.5 Hybrid Retrieval Pipeline](#35-hybrid-retrieval-pipeline)
 
 ## PART 4: QUERY PROCESSING & GENERATION
@@ -165,8 +165,8 @@ tara-telecom-rag/
 │   │
 │   ├── indices/                         # Index storage
 │   │   ├── qdrant/                      # Qdrant data
-│   │   ├── elasticsearch/               # ES data
-│   │   └── neo4j/                       # Neo4j data
+│   │   ├──                              # (ES removed)      
+│   │   └──                              # (Neo4j removed)   
 │   │
 │   └── evaluation/                      # Evaluation datasets
 │       ├── teleqna_test.json
@@ -197,8 +197,8 @@ tara-telecom-rag/
 │   │   └── indexers/                    # Index builders
 │   │       ├── __init__.py
 │   │       ├── vector_indexer.py        # Vector DB indexing
-│   │       ├── sparse_indexer.py        # Elasticsearch indexing
-│   │       └── graph_indexer.py         # Neo4j indexing
+│   │       ├── sparse_indexer.py        # Qdrant BM25 indexing   
+│   │       └── # graph_indexer.py       # REMOVED              
 │   │
 │   ├── 📁 retrieval/                    # Retrieval components
 │   │   ├── __init__.py
@@ -237,7 +237,7 @@ tara-telecom-rag/
 │   │   ├── llm/                         # LLM interfaces
 │   │   │   ├── __init__.py
 │   │   │   ├── base_llm.py              # Base LLM interface
-│   │   │   ├── vllm_client.py           # vLLM client
+│   │   │   ├── ollama_client.py         # Ollama client
 │   │   │   ├── ollama_client.py         # Ollama client
 │   │   │   └── openai_client.py         # OpenAI client (comparison)
 │   │   ├── prompts/                     # Prompt management
@@ -389,7 +389,7 @@ tara-telecom-rag/
 │
 ├── 📁 docker/                           # Docker configurations
 │   ├── Dockerfile                       # Main application
-│   ├── Dockerfile.vllm                  # vLLM server
+│   ├── # Dockerfile.vllm               # REMOVED (using Ollama)
 │   └── docker-compose.yml               # Full stack compose
 │
 ├── 📁 models/                           # Local model storage (git-ignored)
@@ -449,8 +449,8 @@ directories = [
     "data/processed/embeddings",
     "data/processed/graphs",
     "data/indices/qdrant",
-    "data/indices/elasticsearch",
-    "data/indices/neo4j",
+    # "data/indices/elasticsearch"  # REMOVED,
+    # "data/indices/neo4j"  # REMOVED,
     "data/evaluation",
     "src/ingestion/downloaders",
     "src/ingestion/extractors",
@@ -574,9 +574,9 @@ LOG_LEVEL=INFO
 # LLM Configuration
 # =============================================================================
 
-# Local LLM (vLLM)
-VLLM_BASE_URL=http://localhost:8000/v1
-LLM_MODEL=meta-llama/Meta-Llama-3.1-70B-Instruct
+# Local LLM (Ollama)
+OLLAMA_BASE_URL=http://localhost:11434
+LLM_MODEL=meta-llama/Llama-3.2-3B-Instruct
 LLM_TEMPERATURE=0.1
 LLM_MAX_TOKENS=2048
 
@@ -590,7 +590,7 @@ HF_TOKEN=your-huggingface-token
 # Embedding Configuration
 # =============================================================================
 
-EMBEDDING_MODEL=BAAI/bge-m3
+EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 EMBEDDING_DIMENSION=1024
 EMBEDDING_DEVICE=cuda  # or cpu
 
@@ -598,7 +598,7 @@ EMBEDDING_DEVICE=cuda  # or cpu
 # Reranker Configuration
 # =============================================================================
 
-RERANKER_MODEL=BAAI/bge-reranker-v2-m3
+RERANKER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
 RERANK_TOP_K=10
 
 # =============================================================================
@@ -610,28 +610,28 @@ QDRANT_PORT=6333
 QDRANT_COLLECTION=telecom_docs
 
 # =============================================================================
-# Sparse Search (Elasticsearch)
+# Sparse Search (via Qdrant native BM25 — no separate service needed)
 # =============================================================================
 
-ELASTICSEARCH_HOST=localhost
-ELASTICSEARCH_PORT=9200
-ELASTICSEARCH_INDEX=telecom_docs
+# ELASTICSEARCH_HOST=localhost  # REMOVED — Qdrant handles sparse
+# # ELASTICSEARCH_PORT  # REMOVED
+# ELASTICSEARCH_INDEX  # REMOVED
 
 # =============================================================================
-# Graph Database (Neo4j)
+# Graph Database: REMOVED (Neo4j dropped — too heavy for 6GB VRAM)
 # =============================================================================
 
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your-neo4j-password
+# NEO4J_URI=bolt://localhost:7687  # REMOVED
+# NEO4J_USER=neo4j  # REMOVED
+# NEO4J_PASSWORD  # REMOVED
 
 # =============================================================================
-# Cache (Redis)
+# Cache: lru_cache + SQLite (no external service needed)
 # =============================================================================
 
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_DB=0
+# REDIS_HOST=localhost  # REMOVED
+# REDIS_PORT=6379  # REMOVED
+# REDIS_DB=0  # REMOVED
 CACHE_TTL=3600
 
 # =============================================================================
@@ -681,7 +681,7 @@ langgraph>=0.1.0
 
 # LLM clients
 openai>=1.30.0
-vllm>=0.4.0  # Optional, for local inference
+# ollama is installed separately (not a pip package)
 ollama>=0.2.0  # Optional, for local inference
 
 # =============================================================================
@@ -698,10 +698,10 @@ qdrant-client>=1.9.0
 chromadb>=0.5.0  # Backup option
 
 # Sparse search
-elasticsearch>=8.13.0
+# elasticsearch  # REMOVED — using Qdrant sparse vectors
 
 # Graph database
-neo4j>=5.20.0
+# neo4j  # REMOVED — no graph database
 
 # Reranking
 FlagEmbedding>=1.2.0
@@ -762,7 +762,7 @@ pyyaml>=6.0.0
 tomli>=2.0.0
 
 # Caching
-redis>=5.0.0
+# redis  # REMOVED — using lru_cache + SQLite
 
 # Logging & monitoring
 loguru>=0.7.0
@@ -831,11 +831,11 @@ from pydantic import Field
 class LLMSettings(BaseSettings):
     """LLM-related settings"""
     model: str = Field(
-        default="meta-llama/Meta-Llama-3.1-70B-Instruct",
+        default="meta-llama/Llama-3.2-3B-Instruct",
         description="LLM model name or path"
     )
     base_url: Optional[str] = Field(
-        default="http://localhost:8000/v1",
+        default="http://localhost:11434",
         description="LLM API base URL"
     )
     temperature: float = Field(default=0.1, ge=0.0, le=2.0)
@@ -846,7 +846,7 @@ class LLMSettings(BaseSettings):
 
 class EmbeddingSettings(BaseSettings):
     """Embedding model settings"""
-    model: str = Field(default="BAAI/bge-m3")
+    model: str = Field(default="BAAI/bge-small-en-v1.5")
     dimension: int = Field(default=1024)
     device: str = Field(default="cuda")
     batch_size: int = Field(default=32)
@@ -856,7 +856,7 @@ class EmbeddingSettings(BaseSettings):
 
 class RerankerSettings(BaseSettings):
     """Reranker settings"""
-    model: str = Field(default="BAAI/bge-reranker-v2-m3")
+    model: str = Field(default="cross-encoder/ms-marco-MiniLM-L-6-v2")
     top_k: int = Field(default=10)
     
     model_config = SettingsConfigDict(env_prefix="RERANKER_")
@@ -871,32 +871,32 @@ class QdrantSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="QDRANT_")
 
 
-class ElasticsearchSettings(BaseSettings):
-    """Elasticsearch settings"""
+# ElasticsearchSettings REMOVED — sparse retrieval now handled by Qdrant native BM25
+    # (no separate sparse search service needed)
     host: str = Field(default="localhost")
     port: int = Field(default=9200)
     index: str = Field(default="telecom_docs")
     
-    model_config = SettingsConfigDict(env_prefix="ELASTICSEARCH_")
+    # model_config = SettingsConfigDict(env_prefix="ELASTICSEARCH_")  # REMOVED
 
 
-class Neo4jSettings(BaseSettings):
-    """Neo4j graph database settings"""
+# Neo4jSettings REMOVED — no graph database in lean architecture
+    # (graph retrieval removed to fit 6GB VRAM constraint)
     uri: str = Field(default="bolt://localhost:7687")
-    user: str = Field(default="neo4j")
+    # user: str REMOVED
     password: str = Field(default="password")
     
-    model_config = SettingsConfigDict(env_prefix="NEO4J_")
+    # model_config = SettingsConfigDict(env_prefix="NEO4J_")  # REMOVED
 
 
-class RedisSettings(BaseSettings):
-    """Redis cache settings"""
+# RedisSettings REMOVED — using functools.lru_cache + SQLite
+    # (lightweight caching, no external service needed)
     host: str = Field(default="localhost")
     port: int = Field(default=6379)
     db: int = Field(default=0)
     ttl: int = Field(default=3600)
     
-    model_config = SettingsConfigDict(env_prefix="REDIS_")
+    # model_config = SettingsConfigDict(env_prefix="REDIS_")  # REMOVED
 
 
 class RetrievalSettings(BaseSettings):
@@ -945,9 +945,9 @@ class Settings(BaseSettings):
     embedding: EmbeddingSettings = Field(default_factory=EmbeddingSettings)
     reranker: RerankerSettings = Field(default_factory=RerankerSettings)
     qdrant: QdrantSettings = Field(default_factory=QdrantSettings)
-    elasticsearch: ElasticsearchSettings = Field(default_factory=ElasticsearchSettings)
-    neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
-    redis: RedisSettings = Field(default_factory=RedisSettings)
+    # elasticsearch: REMOVED — sparse retrieval via Qdrant
+    # neo4j: REMOVED — no graph database
+    # redis: REMOVED — using lru_cache + SQLite
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     chunking: ChunkingSettings = Field(default_factory=ChunkingSettings)
     query: QuerySettings = Field(default_factory=QuerySettings)
@@ -1072,76 +1072,76 @@ services:
     restart: unless-stopped
 
   # ==========================================================================
-  # Sparse Search - Elasticsearch
+  # Sparse Search - Elasticsearch: REMOVED (using Qdrant native BM25)
   # ==========================================================================
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
-    container_name: tara-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
-    ports:
-      - "9200:9200"
-    volumes:
-      - ../data/indices/elasticsearch:/usr/share/elasticsearch/data
-    restart: unless-stopped
+  # elasticsearch:  # REMOVED
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+  #   container_name: tara-elasticsearch
+  #   environment:
+  #     - discovery.type=single-node
+  #     - xpack.security.enabled=false
+  #     - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+  #   ports:
+  #     - "9200:9200"
+  #   volumes:
+  #     - ../data/indices/elasticsearch:/usr/share/elasticsearch/data
+  #   restart: unless-stopped
 
   # ==========================================================================
-  # Graph Database - Neo4j
+  # Graph Database - Neo4j: REMOVED (too heavy for 6GB VRAM)
   # ==========================================================================
-  neo4j:
-    image: neo4j:5.20-community
-    container_name: tara-neo4j
-    ports:
-      - "7474:7474"  # HTTP
-      - "7687:7687"  # Bolt
-    environment:
-      - NEO4J_AUTH=neo4j/password123
-      - NEO4J_PLUGINS=["apoc"]
-    volumes:
-      - ../data/indices/neo4j/data:/data
-      - ../data/indices/neo4j/logs:/logs
-    restart: unless-stopped
+  # neo4j:  # REMOVED
+  #   image: neo4j:5.20-community
+  #   container_name: tara-neo4j
+  #   ports:
+  #     - "7474:7474"
+  #     - "7687:7687"
+  #   environment:
+  #     - NEO4J_AUTH=neo4j/password123
+  #     - NEO4J_PLUGINS=["apoc"]
+  #   volumes:
+  #     - ../data/indices/neo4j/data:/data
+  #     - ../data/indices/neo4j/logs:/logs
+  #   restart: unless-stopped
 
   # ==========================================================================
-  # Cache - Redis
+  # Cache - Redis: REMOVED (using lru_cache + SQLite)
   # ==========================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: tara-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - ../data/indices/redis:/data
-    restart: unless-stopped
+  # redis:  # REMOVED
+  #   image: redis:7-alpine
+  #   container_name: tara-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - ../data/indices/redis:/data
+  #   restart: unless-stopped
 
   # ==========================================================================
-  # LLM Server - vLLM (requires GPU)
+  # LLM Server - vLLM: REMOVED (using Ollama installed natively)
   # ==========================================================================
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: tara-vllm
-    ports:
-      - "8000:8000"
-    volumes:
-      - ../models/llm:/models
-    environment:
-      - HF_TOKEN=${HF_TOKEN}
-    command: >
-      --model meta-llama/Meta-Llama-3.1-70B-Instruct
-      --tensor-parallel-size 1
-      --max-model-len 8192
-      --gpu-memory-utilization 0.9
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    profiles:
-      - gpu  # Only start with: docker-compose --profile gpu up
+  # vllm:  # REMOVED — use `ollama serve` instead
+  #   image: vllm/vllm-openai:latest
+  #   container_name: tara-vllm
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ../models/llm:/models
+  #   environment:
+  #     - HF_TOKEN=${HF_TOKEN}
+  #   command: >
+  #     --model meta-llama/Llama-3.2-3B-Instruct
+  #     --tensor-parallel-size 1
+  #     --max-model-len 8192
+  #     --gpu-memory-utilization 0.9
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   profiles:
+  #     - gpu  # Only start with: docker-compose --profile gpu up
 
   # ==========================================================================
   # TARA API
@@ -1155,15 +1155,15 @@ services:
       - "8080:8080"
     environment:
       - QDRANT_HOST=qdrant
-      - ELASTICSEARCH_HOST=elasticsearch
-      - NEO4J_URI=bolt://neo4j:7687
-      - REDIS_HOST=redis
-      - VLLM_BASE_URL=http://vllm:8000/v1
+      # - ELASTICSEARCH_HOST  # REMOVED
+      # - NEO4J_URI  # REMOVED
+      - # REDIS_HOST  # REMOVED
+      - OLLAMA_BASE_URL=http://ollama:11434
     depends_on:
       - qdrant
-      - elasticsearch
-      - neo4j
-      - redis
+      # - elasticsearch  # REMOVED
+      # - neo4j  # REMOVED
+      # - redis  # REMOVED
     volumes:
       - ../data:/app/data
     restart: unless-stopped
@@ -1196,9 +1196,9 @@ networks:
 # ==========================================================================
 volumes:
   qdrant-data:
-  elasticsearch-data:
-  neo4j-data:
-  redis-data:
+  # elasticsearch-data:  # REMOVED
+  # neo4j-data:  # REMOVED
+  # redis-data:  # REMOVED
 ```
 
 ---
@@ -3122,7 +3122,7 @@ if __name__ == "__main__":
 
 """
 Embedding Generation
-Generates embeddings using BGE-M3 or other models
+Generates embeddings using bge-small-en-v1.5 or other models
 """
 
 import numpy as np
@@ -3138,19 +3138,19 @@ class EmbeddingResult:
     """Embedding result with metadata"""
     text: str
     dense_embedding: np.ndarray
-    sparse_embedding: Optional[Dict] = None  # For BGE-M3 sparse
+    sparse_embedding: Optional[Dict] = None  # Not used (Qdrant native BM25)
     token_count: int = 0
 
 
 class EmbeddingGenerator:
     """
-    Generate embeddings using BGE-M3 (Multi-Functionality, Multi-Linguality, Multi-Granularity)
+    Generate embeddings using bge-small-en-v1.5 (Multi-Functionality, Multi-Linguality, Multi-Granularity)
     Supports both dense and sparse embeddings
     """
     
     def __init__(
         self,
-        model_name: str = "BAAI/bge-m3",
+        model_name: str = "BAAI/bge-small-en-v1.5",
         use_gpu: bool = True,
         batch_size: int = 32,
         max_length: int = 8192,
@@ -3173,7 +3173,7 @@ class EmbeddingGenerator:
         logger.info(f"Loading embedding model: {self.model_name}")
         
         try:
-            # Use FlagEmbedding for BGE-M3
+            # Use sentence-transformers for bge-small-en-v1.5
             from FlagEmbedding import BGEM3FlagModel
             
             self.model = BGEM3FlagModel(
@@ -3181,7 +3181,7 @@ class EmbeddingGenerator:
                 use_fp16=True if self.device == "cuda" else False,
                 device=self.device
             )
-            self.embedding_dim = 1024  # BGE-M3 dimension
+            self.embedding_dim = 384  # bge-small-en-v1.5 dimension
             
             logger.success(f"Loaded {self.model_name} (dim={self.embedding_dim})")
             
@@ -3211,7 +3211,7 @@ class EmbeddingGenerator:
         
         Args:
             texts: List of texts to embed
-            return_sparse: Whether to return sparse embeddings (BGE-M3)
+            return_sparse: Not used (sparse via Qdrant native BM25)          
             show_progress: Show progress bar
             
         Returns:
@@ -3226,7 +3226,7 @@ class EmbeddingGenerator:
             if hasattr(self.model, 'encode') and hasattr(self.model.encode, '__code__'):
                 # Check if it's FlagEmbedding BGEM3
                 if 'return_dense' in self.model.encode.__code__.co_varnames:
-                    # BGE-M3 style
+                    # bge-small-en-v1.5 dense embeddings
                     output = self.model.encode(
                         batch,
                         return_dense=True,
@@ -3683,21 +3683,21 @@ if __name__ == "__main__":
 
 ---
 
-## 3.3 Elasticsearch Sparse Store
+## 3.3 Elasticsearch Sparse Store [DEPRECATED — Use Qdrant Native BM25]
 
 ```python
-# Save as: src/retrieval/vectorstores/elasticsearch_store.py
+# REMOVED — This file is no longer needed. Qdrant handles sparse retrieval.
 
 """
-Elasticsearch Sparse Vector Store
-BM25 + Sparse vector retrieval using Elasticsearch
+DEPRECATED: Elasticsearch Sparse Vector Store
+REMOVED — BM25 sparse retrieval now handled by Qdrant native sparse vectors
 """
 
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 from loguru import logger
-from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
+# from elasticsearch import Elasticsearch  # REMOVED
+# from elasticsearch.helpers import bulk  # REMOVED
 
 
 @dataclass
@@ -3710,9 +3710,9 @@ class SparseSearchResult:
     highlights: List[str] = None
 
 
-class ElasticsearchStore:
+class ElasticsearchStore:  # DEPRECATED — use Qdrant instead
     """
-    Elasticsearch-based sparse retrieval
+    DEPRECATED: Elasticsearch-based sparse retrieval (use Qdrant native BM25)
     Supports BM25 and sparse vector search
     """
     
@@ -3726,18 +3726,18 @@ class ElasticsearchStore:
         self.index_name = index_name
         self.use_sparse_vectors = use_sparse_vectors
         
-        # Connect to Elasticsearch
-        logger.info(f"Connecting to Elasticsearch at {host}:{port}")
-        self.client = Elasticsearch(
+        # REMOVED — no Elasticsearch connection needed
+        logger.info(f"REMOVED: Was connecting to Elasticsearch at {host}:{port}")
+        # self.client = Elasticsearch(  # REMOVED
             hosts=[{"host": host, "port": port, "scheme": "http"}],
             request_timeout=30
         )
         
         # Verify connection
         if not self.client.ping():
-            raise ConnectionError("Cannot connect to Elasticsearch")
+            raise ConnectionError("Elasticsearch REMOVED from architecture")
         
-        logger.success("Connected to Elasticsearch")
+        logger.success("Elasticsearch REMOVED — using Qdrant")
         
         # Create index
         self._ensure_index()
@@ -4107,7 +4107,7 @@ class ElasticsearchStore:
 
 # Usage
 if __name__ == "__main__":
-    store = ElasticsearchStore(
+    # store = ElasticsearchStore(  # REMOVED
         index_name="tara_test",
         use_sparse_vectors=True
     )
@@ -4130,20 +4130,20 @@ if __name__ == "__main__":
 
 ---
 
-## 3.4 Neo4j Graph Store
+## 3.4 REMOVED: Neo4j Graph Store [REMOVED — Not Used in Lean Architecture]
 
 ```python
-# Save as: src/retrieval/vectorstores/neo4j_store.py
+# REMOVED — This file is no longer needed. No graph database.
 
 """
-Neo4j Graph Store
+REMOVED: Neo4j Graph Store
 Knowledge graph storage for telecom document relationships
 """
 
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from loguru import logger
-from neo4j import GraphDatabase
+# from neo4j import GraphDatabase  # REMOVED
 
 
 @dataclass
@@ -4172,27 +4172,27 @@ class GraphSearchResult:
     context_nodes: List[GraphNode] = None
 
 
-class Neo4jStore:
+class Neo4jStore:  # REMOVED — no graph database
     """
-    Neo4j-based knowledge graph store
+    REMOVED: Neo4j-based knowledge graph store (not used in lean architecture)
     Stores telecom document relationships and enables graph-based retrieval
     """
     
     def __init__(
         self,
         uri: str = "bolt://localhost:7687",
-        user: str = "neo4j",
+        # user: str = "neo4j",  # REMOVED
         password: str = "password",
         database: str = "tara"
     ):
-        logger.info(f"Connecting to Neo4j at {uri}")
+        logger.info(f"REMOVED: Was connecting to Neo4j at {uri}")
         
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.database = database
         
         # Verify connection
         self.driver.verify_connectivity()
-        logger.success("Connected to Neo4j")
+        logger.success("Neo4j REMOVED — no graph database")
         
         # Setup schema
         self._setup_schema()
@@ -4617,9 +4617,9 @@ class Neo4jStore:
 
 # Usage
 if __name__ == "__main__":
-    store = Neo4jStore(
+    # store = Neo4jStore(  # REMOVED
         uri="bolt://localhost:7687",
-        user="neo4j",
+        # user="neo4j",  # REMOVED
         password="password"
     )
     
@@ -4686,8 +4686,8 @@ class HybridRetriever:
     """
     Hybrid retrieval combining:
     1. Dense retrieval (Qdrant)
-    2. Sparse retrieval (Elasticsearch BM25)
-    3. Graph retrieval (Neo4j)
+    2. Sparse retrieval (Qdrant native BM25) 
+    # 3. Graph retrieval REMOVED        
     
     Uses Reciprocal Rank Fusion (RRF) for combination
     """
@@ -4695,8 +4695,8 @@ class HybridRetriever:
     def __init__(
         self,
         dense_store=None,  # QdrantStore
-        sparse_store=None,  # ElasticsearchStore
-        graph_store=None,  # Neo4jStore
+        sparse_store=None,  # Qdrant handles sparse natively
+        # graph_store REMOVED — no graph database
         embedding_generator=None,  # EmbeddingGenerator
         dense_weight: float = 0.4,
         sparse_weight: float = 0.4,
@@ -4986,7 +4986,7 @@ class HybridRetriever:
             from sentence_transformers import CrossEncoder
             
             # Load reranker
-            reranker = CrossEncoder('BAAI/bge-reranker-v2-m3', device='cuda')
+            reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', device='cuda')
             
             # Prepare pairs
             pairs = [(query, r.text) for r in results]
@@ -5062,12 +5062,12 @@ def create_hybrid_retriever(config: Dict) -> HybridRetriever:
     """Create a HybridRetriever from config"""
     from src.retrieval.embeddings.embedding_generator import EmbeddingGenerator
     from src.retrieval.vectorstores.qdrant_store import QdrantStore
-    from src.retrieval.vectorstores.elasticsearch_store import ElasticsearchStore
-    from src.retrieval.vectorstores.neo4j_store import Neo4jStore
+    # ElasticsearchStore REMOVED — sparse via Qdrant native BM25
+    # Neo4jStore REMOVED — no graph database
     
     # Initialize components
     embedding_gen = EmbeddingGenerator(
-        model_name=config.get('embedding_model', 'BAAI/bge-m3')
+        model_name=config.get('embedding_model', 'BAAI/bge-small-en-v1.5')
     )
     
     dense_store = QdrantStore(
@@ -5076,7 +5076,7 @@ def create_hybrid_retriever(config: Dict) -> HybridRetriever:
         port=config.get('qdrant_port', 6333)
     )
     
-    sparse_store = ElasticsearchStore(
+    sparse_# store = ElasticsearchStore(  # REMOVED
         index_name=config.get('es_index', 'tara_documents'),
         host=config.get('es_host', 'localhost'),
         port=config.get('es_port', 9200)
@@ -5084,10 +5084,10 @@ def create_hybrid_retriever(config: Dict) -> HybridRetriever:
     
     graph_store = None
     if config.get('use_graph', True):
-        graph_store = Neo4jStore(
-            uri=config.get('neo4j_uri', 'bolt://localhost:7687'),
-            user=config.get('neo4j_user', 'neo4j'),
-            password=config.get('neo4j_password', 'password')
+        graph_# store = Neo4jStore(  # REMOVED
+            # uri REMOVED
+            # user REMOVED
+            # password REMOVED
         )
     
     return HybridRetriever(
@@ -5105,7 +5105,7 @@ def create_hybrid_retriever(config: Dict) -> HybridRetriever:
 if __name__ == "__main__":
     # Example usage
     config = {
-        'embedding_model': 'BAAI/bge-m3',
+        'embedding_model': 'BAAI/bge-small-en-v1.5',
         'qdrant_collection': 'tara_documents',
         'es_index': 'tara_documents',
         'use_graph': True,
@@ -5907,15 +5907,15 @@ class LLMClient(ABC):
         pass
 
 
-class VLLMClient(LLMClient):
+class OllamaClient(LLMClient):
     """
-    vLLM-based LLM client for high-performance inference
-    Supports Llama-3.1-70B and similar models
+    Ollama-based LLM client for efficient local inference
+    Supports Llama-3.2-3B-Instruct (4-bit GGUF) and similar models
     """
     
     def __init__(
         self,
-        model_name: str = "meta-llama/Meta-Llama-3.1-70B-Instruct",
+        model_name: str = "meta-llama/Llama-3.2-3B-Instruct",
         api_base: str = "http://localhost:8000",
         api_key: str = "EMPTY"
     ):
@@ -5935,7 +5935,7 @@ class VLLMClient(LLMClient):
             base_url=f"{api_base}/v1"
         )
         
-        logger.info(f"Initialized vLLM client with {model_name}")
+        logger.info(f"Initialized Ollama client with {model_name}")
     
     def generate(
         self,
@@ -6048,7 +6048,7 @@ class OllamaClient(LLMClient):
     
     def __init__(
         self,
-        model_name: str = "llama3.1:70b",
+        model_name: str = "llama3.2:3b",
         host: str = "http://localhost:11434"
     ):
         self.model_name = model_name
@@ -6239,16 +6239,16 @@ class HuggingFaceClient(LLMClient):
 # Factory
 def create_llm_client(config: Dict) -> LLMClient:
     """Create LLM client from config"""
-    backend = config.get('backend', 'vllm')
+    backend = config.get('backend', 'ollama')
     
-    if backend == 'vllm':
-        return VLLMClient(
-            model_name=config.get('model_name', 'meta-llama/Meta-Llama-3.1-70B-Instruct'),
+    if backend == 'ollama':
+        return OllamaClient(
+            model_name=config.get('model_name', 'meta-llama/Llama-3.2-3B-Instruct'),
             api_base=config.get('api_base', 'http://localhost:8000')
         )
     elif backend == 'ollama':
         return OllamaClient(
-            model_name=config.get('model_name', 'llama3.1:70b'),
+            model_name=config.get('model_name', 'llama3.2:3b'),
             host=config.get('host', 'http://localhost:11434')
         )
     elif backend == 'huggingface':
@@ -6262,9 +6262,9 @@ def create_llm_client(config: Dict) -> LLMClient:
 
 # Usage
 if __name__ == "__main__":
-    # Example with vLLM
-    client = VLLMClient(
-        model_name="meta-llama/Meta-Llama-3.1-70B-Instruct",
+    # Example with Ollama
+    client = OllamaClient(
+        model_name="meta-llama/Llama-3.2-3B-Instruct",
         api_base="http://localhost:8000"
     )
     
@@ -8158,7 +8158,7 @@ import hashlib
 import json
 import time
 from loguru import logger
-import redis
+# import redis  # REMOVED — using functools.lru_cache + SQLite
 from functools import wraps
 
 
@@ -8667,8 +8667,8 @@ async def startup():
         'embedding_model': settings.embedding_model,
         'qdrant_host': settings.qdrant_host,
         'qdrant_port': settings.qdrant_port,
-        'es_host': settings.elasticsearch_host,
-        'es_port': settings.elasticsearch_port,
+        # 'es_host': REMOVED — Qdrant handles sparse retrieval,
+        # 'es_port': REMOVED,
     })
     
     llm_client = create_llm_client({
@@ -9392,19 +9392,19 @@ services:
     environment:
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
-      - ELASTICSEARCH_HOST=elasticsearch
-      - ELASTICSEARCH_PORT=9200
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - LLM_API_BASE=http://vllm:8000
+      # - ELASTICSEARCH_HOST  # REMOVED
+      # - ELASTICSEARCH_PORT  # REMOVED
+      # - NEO4J_URI  # REMOVED
+      # - NEO4J_USER  # REMOVED
+      # - NEO4J_PASSWORD  # REMOVED
+      - # REDIS_HOST  # REMOVED
+      - # REDIS_PORT=6379  # REMOVED
+      - LLM_API_BASE=http://ollama:11434
     depends_on:
       - qdrant
-      - elasticsearch
-      - neo4j
-      - redis
+      # - elasticsearch  # REMOVED
+      # - neo4j  # REMOVED
+      # - redis  # REMOVED
     networks:
       - tara-network
     deploy:
@@ -9445,10 +9445,10 @@ services:
         limits:
           memory: 4G
 
-  # Elasticsearch
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: elasticsearch
+  # Sparse Retrieval (Qdrant native BM25)
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+  #   container_name: elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -9456,7 +9456,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      # - es_data:/usr/share/elasticsearch/data  # REMOVED
     networks:
       - tara-network
     deploy:
@@ -9464,18 +9464,18 @@ services:
         limits:
           memory: 4G
 
-  # Neo4j Graph Database
-  neo4j:
-    image: neo4j:5.15.0
-    container_name: neo4j
+  # Neo4j Graph Database: REMOVED
+  # neo4j:  # REMOVED
+  #   image: neo4j:5.15.0
+  #   container_name: neo4j
     ports:
       - "7474:7474"
       - "7687:7687"
     environment:
-      - NEO4J_AUTH=neo4j/password
-      - NEO4J_PLUGINS=["apoc"]
+      # - NEO4J_AUTH  # REMOVED
+      # - NEO4J_PLUGINS  # REMOVED
     volumes:
-      - neo4j_data:/data
+      # - # neo4j_data:  # REMOVED/data  # REMOVED
     networks:
       - tara-network
     deploy:
@@ -9483,10 +9483,10 @@ services:
         limits:
           memory: 2G
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: redis
+  # Cache: lru_cache + SQLite (Redis removed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis
     ports:
       - "6379:6379"
     volumes:
@@ -9494,10 +9494,10 @@ services:
     networks:
       - tara-network
 
-  # vLLM Server (optional - for local LLM)
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: vllm
+  # vLLM Server: REMOVED (using Ollama)
+  # vllm:  # REMOVED
+  #   image: vllm/vllm-openai:latest
+  #   container_name: vllm
     ports:
       - "8080:8000"
     volumes:
@@ -9516,7 +9516,7 @@ services:
 volumes:
   qdrant_data:
   es_data:
-  neo4j_data:
+  # neo4j_data:  # REMOVED
   redis_data:
 
 networks:
@@ -10007,16 +10007,16 @@ def run_evaluation(
     
     # Initialize components
     retriever = create_hybrid_retriever({
-        'embedding_model': config.get('embedding_model', 'BAAI/bge-m3'),
+        'embedding_model': config.get('embedding_model', 'BAAI/bge-small-en-v1.5'),
         'qdrant_host': config.get('qdrant_host', 'localhost'),
         'qdrant_port': config.get('qdrant_port', 6333),
-        'es_host': config.get('elasticsearch_host', 'localhost'),
-        'es_port': config.get('elasticsearch_port', 9200),
+        # 'es_host': REMOVED — using Qdrant sparse,
+        # 'es_port': REMOVED,
     })
     
     llm_client = create_llm_client({
-        'backend': config.get('llm_backend', 'vllm'),
-        'model_name': config.get('llm_model', 'meta-llama/Meta-Llama-3.1-70B-Instruct'),
+        'backend': config.get('llm_backend', 'ollama'),
+        'model_name': config.get('llm_model', 'meta-llama/Llama-3.2-3B-Instruct'),
         'api_base': config.get('llm_api_base', 'http://localhost:8000'),
     })
     
@@ -10166,7 +10166,8 @@ pip install -r requirements.txt
 
 ```bash
 # Start databases
-docker-compose up -d qdrant elasticsearch neo4j redis
+# Only Qdrant needed (runs in local/file mode, Docker optional)
+# qdrant can also run embedded via qdrant-client Python package
 
 # Wait for services to be ready
 sleep 30
@@ -10191,9 +10192,9 @@ python scripts/index_documents.py
 
 ## Step 5: Start LLM Server
 
-Option A: vLLM (recommended for production)
+Option A: Ollama (recommended for local deployment)
 ```bash
-python -m vllm.entrypoints.openai.api_server \
+ollama serve  # Starts Ollama server on localhost:11434
     --model meta-llama/Meta-Llama-3.1-8B-Instruct \
     --port 8000
 ```
