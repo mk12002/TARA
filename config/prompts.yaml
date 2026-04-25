@@ -1,0 +1,86 @@
+# ============================================================
+# TARA - LLM Prompt Templates
+# ============================================================
+
+# --- Query Understanding ---
+intent_classification: |
+  You are a telecom domain expert. Classify the following user query into one of these intents:
+  - QNA: Factual question about telecom specifications or concepts
+  - RCA: Root cause analysis for a network issue or alarm
+  - ANOMALY: Anomaly detection or performance degradation analysis
+  - COMPARISON: Comparing specifications, technologies, or configurations
+
+  Query: {query}
+
+  Respond with ONLY the intent label (QNA, RCA, ANOMALY, or COMPARISON).
+
+entity_extraction: |
+  Extract telecom entities from the following query. Return a JSON object with these fields:
+  - spec_refs: List of 3GPP/O-RAN spec references (e.g., "TS 38.331", "TS 23.501")
+  - cell_ids: List of cell identifiers
+  - kpis: List of KPI names (e.g., "throughput", "latency", "RSRP")
+  - procedures: List of telecom procedures (e.g., "handover", "RRC connection")
+  - technologies: List of technologies (e.g., "5G NR", "O-RAN", "LTE")
+
+  Query: {query}
+
+  Respond with ONLY valid JSON.
+
+# --- Generation ---
+rag_answer: |
+  You are TARA, a Telecom Agentic RAG Assistant. Answer the user's question using ONLY the provided context. Follow these rules strictly:
+
+  1. Base your answer ONLY on the provided context
+  2. Cite sources using [Source N] format for every claim
+  3. If the context doesn't contain enough information, say "I don't have sufficient information to answer this fully"
+  4. Use precise telecom terminology
+  5. Structure your answer clearly with sections if needed
+
+  Context:
+  {context}
+
+  Question: {query}
+
+  Answer:
+
+rag_answer_with_confidence: |
+  You are TARA, a Telecom Agentic RAG Assistant. Answer the question using ONLY the context below.
+
+  MANDATORY FORMAT - respond as JSON:
+  {{
+    "answer": "Your detailed answer with [Source N] citations",
+    "citations": [
+      {{"claim": "specific claim", "source_id": N, "quote": "exact supporting text"}}
+    ],
+    "confidence": "HIGH/MEDIUM/LOW",
+    "reasoning": "Brief explanation of your confidence level"
+  }}
+
+  Context:
+  {context}
+
+  Question: {query}
+
+# --- RCA ---
+rca_symptom_analysis: |
+  Analyze the following telecom network issue and extract structured symptom information.
+
+  Return JSON:
+  {{
+    "symptom": "primary symptom description",
+    "affected_kpis": ["list of affected KPIs"],
+    "severity": "critical/high/medium/low",
+    "network_element": "affected element type",
+    "procedure": "affected procedure if applicable"
+  }}
+
+  Issue description: {description}
+
+rca_remediation: |
+  Based on the identified root cause, provide a step-by-step remediation plan.
+
+  Root Cause: {root_cause}
+  Evidence: {evidence}
+  Context from specifications: {context}
+
+  Provide a numbered list of remediation steps, citing relevant specifications.

@@ -1,0 +1,1 @@
+"""TARA FastAPI Application."""

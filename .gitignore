@@ -1,0 +1,41 @@
+# TARA - Telecom Agentic RAG Assistant
+
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+
+# Data & Indices (large files)
+data/raw/3gpp_specs/
+data/raw/oran_specs/
+data/indices/
+data/cache/
+
+# Logs
+logs/
+
+# Model weights (downloaded at runtime)
+models/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution
+dist/
+build/
+*.egg-info/

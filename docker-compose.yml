@@ -1,0 +1,47 @@
+# ============================================================
+# TARA - Docker Compose (Lean Stack)
+# ============================================================
+# Only Qdrant as external service. LLM runs via Ollama (host).
+
+version: "3.8"
+
+services:
+  # --- Qdrant Vector DB ---
+  # Optional: Use this if you prefer Docker Qdrant over local file mode
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: tara-qdrant
+    ports:
+      - "6333:6333"    # REST API
+      - "6334:6334"    # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+
+  # --- TARA API ---
+  tara-api:
+    build: .
+    container_name: tara-api
+    ports:
+      - "8080:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - QDRANT_PATH=  # Empty = use Qdrant service instead of local file
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - qdrant
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # --- REMOVED SERVICES ---
+  # The following were removed to fit 6GB VRAM constraints:
+  # - Neo4j (graph DB) — replaced by structured Python backend
+  # - Elasticsearch — replaced by Qdrant native BM25
+  # - Redis — replaced by functools.lru_cache + SQLite
+  # - vLLM — replaced by Ollama (CPU/GPU hybrid offloading)
+
+volumes:
+  qdrant_data:

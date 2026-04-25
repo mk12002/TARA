@@ -1,0 +1,4 @@
+# This directory holds raw downloaded data:
+# - 3gpp_specs/   → 3GPP specification PDFs
+# - oran_specs/   → O-RAN specification PDFs  
+# - teleqna/      → TeleQnA evaluation dataset
